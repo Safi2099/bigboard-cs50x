@@ -1,0 +1,24 @@
+[project]
+name = "bigboard-cs50x"
+version = "0.1.0"
+description = "A flask app for users to submit cs50x/speller code and compare benchmarks"
+authors = [
+    { name = "fluffy-marmot", email = "10621013+fluffy-marmot@users.noreply.github.com"},
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "colorlog>=6.9.0",
+    "flask>=3.1.3",
+    "Flask-SQLAlchemy>=3.1.1",
+    "python-dotenv>=1.2.1",
+    "SQLAlchemy>=2.0.47",
+    "psycopg2-binary",
+]
+
+[dependency-groups]
+dev = [
+]
+
+[tool.setuptools]
+packages = ["app"]

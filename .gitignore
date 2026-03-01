@@ -1,0 +1,12 @@
+# ignore python cached stuff
+*.pyc
+__pycache__/
+
+# ignore log files
+*.log
+
+# don't commit secret key or db login info
+.env
+
+# package metadata
+*.egg-info
