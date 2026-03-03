@@ -24,15 +24,19 @@ def submit() -> Response:
         return jsonify({"output": "Error: no code received."}), 400
 
     code = data["code"]
+    header = data.get("header", "")
 
-    with open( BASE_DIR / "submission" / "dictionary.c", "w") as f:
+    with open(BASE_DIR / "submission" / "dictionary.c", "w") as f:
         f.write(code)
 
-    # in the case of using the distribution code version of dictionary.h
-    shutil.copy(
-        BASE_DIR / "submission" / "distribution_dictionary.h", 
-        BASE_DIR / "submission" / "dictionary.h"
-    )
+    if header:
+        with open(BASE_DIR / "submission" / "dictionary.h", "w") as f:
+            f.write(header)
+    else:
+        shutil.copy(
+            BASE_DIR / "submission" / "distribution_dictionary.h",
+            BASE_DIR / "submission" / "dictionary.h"
+        )
 
     # Spin up a docker container to compile and run the student's submission.
 
