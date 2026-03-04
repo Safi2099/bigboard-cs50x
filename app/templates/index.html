@@ -14,7 +14,7 @@
 
     <div id="use-dist-container">
         <label id="use-dist-label">
-            <input type="checkbox" id="use-dist-checkbox" checked>
+            <input type="checkbox" id="use-dist-checkbox" autocomplete="off" checked>
             Use distribution <code>dictionary.h</code>
         </label>
     </div>
@@ -23,12 +23,12 @@
         <div id="textareas-container">
             <div class="textarea-group">
                 <label for="code-input">Paste your <code>dictionary.c</code> below:</label>
-                <textarea id="code-input" name="code" placeholder="// your dictionary.c here..."></textarea>
+                <textarea id="code-input" name="code" placeholder="// your dictionary.c here..." spellcheck="false"></textarea>
             </div>
             <div id="textarea-divider" hidden></div>
             <div class="textarea-group" id="header-group" hidden>
                 <label for="header-input">Paste your <code>dictionary.h</code> below:</label>
-                <textarea id="header-input" name="header" placeholder="// your dictionary.h here..."></textarea>
+                <textarea id="header-input" name="header" placeholder="// your dictionary.h here..." spellcheck="false"></textarea>
             </div>
         </div>
         <div id="submit-container">
