@@ -6,16 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bigboard - CS50x Speller Benchmark</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='cs50.ico') }}" type="image/x-icon">
 </head>
 
 <body>
     <h1>Bigboard - CS50x Speller Benchmark</h1>
+
     <div id="use-dist-container">
         <label id="use-dist-label">
             <input type="checkbox" id="use-dist-checkbox" checked>
             Use distribution <code>dictionary.h</code>
         </label>
     </div>
+
     <form id="submit-form">
         <div id="textareas-container">
             <div class="textarea-group">
@@ -28,7 +31,10 @@
                 <textarea id="header-input" name="header" placeholder="// your dictionary.h here..."></textarea>
             </div>
         </div>
-        <button type="submit" id="submit-btn" disabled>Submit</button>
+        <div id="submit-container">
+            <button type="submit" id="submit-btn" disabled>Submit</button>
+            <div id="queue-status" hidden></div>
+        </div>
     </form>
 
     <div id="output-area">

@@ -21,7 +21,10 @@ def create_app():
 
     from .routes import main
     app.register_blueprint(main)
-    
+
+    from .queue_worker import start_worker
+    start_worker()
+
     return app
 
 def setup_logging(app: Flask):

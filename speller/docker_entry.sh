@@ -8,4 +8,4 @@ cp /submission/dictionary.h /speller/dictionary.h
 
 cd /speller
 make -B
-./speller texts/wordsworth.txt
+./speller texts/holmes.txt

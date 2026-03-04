@@ -8,6 +8,8 @@ const headerInput = document.getElementById('header-input');
 const dividerDiv = document.getElementById('textarea-divider');
 const textareasContainer = document.getElementById('textareas-container');
 const codeGroup = document.querySelector('.textarea-group');
+const queueStatus = document.getElementById('queue-status');
+
 
 // Push divider down so it aligns with the textareas, not the labels
 const codeLabel = codeGroup.querySelector('label');
@@ -69,8 +71,11 @@ submitForm.addEventListener('submit', async function(e) {
     submitBtn.disabled = true;
     codeInput.disabled = true;
     headerInput.disabled = true;
-    outputDiv.textContent = 'Running...';
+    outputDiv.textContent = '';
+    queueStatus.hidden = false;
+    queueStatus.textContent = 'Submitting...';
 
+    let submissionId = null;
     try {
         const response = await fetch('/submit', {
             method: 'POST',
@@ -81,12 +86,45 @@ submitForm.addEventListener('submit', async function(e) {
             })
         });
         const data = await response.json();
-        outputDiv.textContent = data.output;
+        if (!response.ok || !data.submission_id) {
+            throw new Error(data.error || 'Submission failed.');
+        }
+        submissionId = data.submission_id;
     } catch (err) {
-        outputDiv.textContent = 'Error: could not reach server.';
-    } finally {
-        submitBtn.disabled = false;
+        queueStatus.hidden = true;
+        outputDiv.textContent = 'Error: ' + err.message;
+        submitBtn.disabled = false; // TODO group these lines together in a function, repeated a bunch
         codeInput.disabled = false;
         headerInput.disabled = false;
+        return;
     }
+
+    // Poll /status/<id> until done
+    const pollInterval = setInterval(async function() {
+        try {
+            const res = await fetch('/status/' + submissionId);
+            const data = await res.json();
+
+            if (data.status === 'pending') {
+                queueStatus.textContent = `${data.position} submission(s) ahead of you...`;
+            } else if (data.status === 'running') {
+                queueStatus.textContent = 'Running benchmarks...';
+            } else if (data.status === 'done' || data.status === 'error') {
+                clearInterval(pollInterval);
+                queueStatus.hidden = true;
+                outputDiv.textContent = data.output;
+                submitBtn.disabled = false;
+                codeInput.disabled = false;
+                headerInput.disabled = false;
+            }
+        } catch (err) {
+            clearInterval(pollInterval);
+            queueStatus.hidden = true;
+            outputDiv.textContent = 'Error: could not reach server.';
+            submitBtn.disabled = false;
+            codeInput.disabled = false;
+            headerInput.disabled = false;
+        }
+    }, 750);
+    // TODO reminder: externalize polling interval in .env file, would be a useful adjustable setting
 });
