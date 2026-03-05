@@ -1,18 +1,24 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+import sys
 
 import colorlog
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
+from .container import spin_container
+from .queue_worker import start_queue_worker
+from .routes import main
 
 db = SQLAlchemy()
 load_dotenv()
 
+
 def create_app() -> Flask:
     setup_logging()
+    log = logging.getLogger(__name__)
 
     app = Flask(__name__)
 
@@ -20,11 +26,16 @@ def create_app() -> Flask:
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     db.init_app(app)
 
-    from .routes import main
     app.register_blueprint(main)
 
-    from .queue_worker import start_worker
-    start_worker()
+    # compiles the benchmark executable and creates some necessary symlinks
+    result = spin_container(workspace_perm="rw", extra_flags=["--initialize"])
+    log.info(result.stdout + result.stderr)
+    if result.returncode != 0:
+        log.error("Error while spinning up container during app initialization")
+        sys.exit(1)
+
+    start_queue_worker()
 
     return app
 

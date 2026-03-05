@@ -12,7 +12,9 @@ __pycache__/
 *.egg-info
 
 # Don't commit CS50x/speller distribution code, it can be obtained from CS50
-# Also don't student submissions dir
 speller.zip
 speller/
-submission/
+
+# files where student submissions get temporarily written to
+speller_workspace/_dictionary.c
+speller_workspace/_dictionary.h

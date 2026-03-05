@@ -1,11 +1,12 @@
 import logging
-import shutil
 import subprocess
 import threading
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from time import time_ns
+
+from .container import spin_container
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -74,53 +75,23 @@ def _run_benchmark_container(item: QueueItem) -> None:
     """
     log.info("Submission %s starting docker container", item.submission_id)
 
-    with open(BASE_DIR / "submission" / "dictionary.c", "w") as f:
+    # write/symlink submission code
+    with open(BASE_DIR / "speller_workspace" / "_dictionary.c", "w") as f:
         f.write(item.code)
 
+    header_file = BASE_DIR / "speller_workspace" / "_dictionary.h"
+    header_file.unlink(missing_ok=True)
     if item.header:
-        with open(BASE_DIR / "submission" / "dictionary.h", "w") as f:
+        with open(header_file, "w") as f:
             f.write(item.header)
     else:
         # if no dictionary.h submitted, use the distribution code version
-        shutil.copy(
-            BASE_DIR / "submission" / "distribution_dictionary.h",
-            BASE_DIR / "submission" / "dictionary.h"
-        )
+        # symlink relative to container's filesystem
+        header_file.symlink_to("/speller_workspace/distribution_dictionary.h")
 
     # Spin up a docker container to compile and run the student's submission.
-
-    # --rm                      remove the container automatically after it exits
-    # --network none            no network access from inside the container
-    # --memory 256m             hard memory cap
-    # --cpus 0.5                limit CPU cores
-    # --cap-drop ALL            drop all Linux capabilities (least-privilege)
-    # --pids-limit 50           max number of processes/threads (prevents fork bombs)
-    # --security-opt ...        prevent processes from gaining new privileges via setuid
-    # --ulimit fsize=...        cap any single file write to a max size
-    # -v speller:/speller:rw    mount distribution code read-write (compiled output lands here)
-    # -v submission:...  :ro    mount student submission files as read-only
-
-    # TODO better to externalize resource limits and docker settings to .env file
-
     try:
-        result = subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "--network", "none",
-                "--memory", "256m",
-                "--cpus", "0.5",
-                "--cap-drop", "ALL",
-                "--pids-limit", "50",
-                "--security-opt", "no-new-privileges",
-                "--ulimit", "fsize=26214400",
-                "-v", f"{BASE_DIR / 'speller'}:/speller:rw",
-                "-v", f"{BASE_DIR / 'submission'}:/submission:ro",
-                "bigboard-sandbox",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
+        result = spin_container()
         output = result.stdout + result.stderr
         status = "done"
         log.info("Submission %s finished, exit code: %s", item.submission_id, result.returncode)
@@ -156,7 +127,7 @@ def _queue_worker() -> None:
             _run_benchmark_container(item)
 
 
-def start_worker() -> None:
+def start_queue_worker() -> None:
     t = threading.Thread(target=_queue_worker, daemon=True, name="queue-worker")
     log.info("Starting queue worker thread")
     t.start()
