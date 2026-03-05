@@ -5,20 +5,10 @@ import uuid
 from dataclasses import dataclass
 from time import time_ns
 
-from .config import *
-from .container import spin_container
-
+from .benchmark import benchmark_submission
+from .models import QueueItem
 
 log = logging.getLogger(__name__)
-
-@dataclass
-class QueueItem:
-    submission_id: str              # unique id used by client to check status of their submission
-    timestamp: int                  # Unix timestamp
-    code: str                       # contents of submission's dictionary.c
-    header: str                     # contents of submission's dictionary.h (blank if using distribution)
-    status: str = "pending"         # pending | compiling | running | done | error
-    output: str = ""                # output for webpage's "terminal"
 
 _pending: list[QueueItem] = []
 _all: dict[str, QueueItem] = {}
@@ -69,56 +59,18 @@ def queue_length() -> int:
         return len(_pending)
 
 
-def _run_benchmark_container(item: QueueItem) -> None:
+def _process_item(item: QueueItem) -> None:
     """
     Write submission contents to files where they will be accessible to a docker container and
     spin up the container. Remove item from q
     """
-    log.info("Submission %s starting docker container", item.submission_id)
+    log.info("processing submission %s", item.submission_id)
 
-    # write/symlink submission code
-    with open(BASE_DIR / SPELLER_WS / "_dictionary.c", "w") as f:
-        f.write(item.code)
-
-    header_file = BASE_DIR / SPELLER_WS / "_dictionary.h"
-    header_file.unlink(missing_ok=True)
-    if item.header:
-        with open(header_file, "w") as f:
-            f.write(item.header)
-    else:
-        # if no dictionary.h submitted, use the distribution code version
-        # symlink relative to container's filesystem
-        header_file.symlink_to(f"/{SPELLER_WS}/distribution_dictionary.h")
-
-    # Spin up a docker container to compile and run the student's submission.
-    try:
-        # compilation step
-        result = spin_container(speller_perms="rw", mount_workspace=True, flags=["--compile-submission"])
-        output = result.stdout + result.stderr
-        if result.returncode != 0:
-            status = "error"
-        else:
-            log.debug("Submission %s finished compiling, exit code: %s", item.submission_id, result.returncode)
-            with _lock:
-                item.status = "running"
-            
-            # execution step
-            # TODO this command is a placeholder, we'll clean it up when we figure out actual benchmark
-            result = spin_container(parameters=["-c", f"cd /{SPELLER} && ./speller 5 texts/holmes.txt && echo 'Benchmark:' && ./benchmark 5 texts/holmes.txt"])
-            output = output + "\n" + result.stdout + result.stderr
-            status = "done"
-
-            log.debug("Submission %s finished benchmark, exit code: %s", item.submission_id, result.returncode)
-    except subprocess.TimeoutExpired:
-        output = "Error: execution timed out."
-        status = "error"
-        log.warning("Submission %s timed out", item.submission_id)
-
-        # TODO may need to implement a docker stop command here? Can process keep running?
+    result = benchmark_submission(item)
 
     with _lock:
-        item.output = output
-        item.status = status
+        item.output = result.output
+        item.status = result.status
         if item in _pending:
             _pending.remove(item)
 
@@ -136,9 +88,9 @@ def _queue_worker() -> None:
                     _wake_worker_event.clear()
                     break
                 item = _pending[0]
-                item.status = "compiling"
+                item.status = "running"
 
-            _run_benchmark_container(item)
+            _process_item(item)
 
 
 def start_queue_worker() -> None:
