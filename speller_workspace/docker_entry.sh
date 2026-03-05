@@ -6,7 +6,7 @@ set -e
 # SPELLER=speller
 # SPELLER_WS=speller_workspace
 
-SPELLER_C_FILENAME=speller2.c
+SPELLER_C_FILENAME=speller3.c
 DICTIONARY_H_FILENAME=distribution_dictionary.h
 
 # benchmark filenames: dictionary.c source and executable to use
@@ -51,7 +51,7 @@ elif [ "$1" = "--compile-submission" ]; then
     # Use CS50 Makefile, but make sure everything is recompiled for each submission
     make -B
 fi
-#     ./speller 5 texts/holmes.txt
+#     ./speller [-i iters] [-d dictionary] [-s signature] texts/holmes.txt
 
 #     echo "Benchmark:"
 #     ./$BENCHMARK_EXECUTABLE 5 texts/holmes.txt

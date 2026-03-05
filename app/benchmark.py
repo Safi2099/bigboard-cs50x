@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 import logging
 import subprocess
+import random
+import string
+import os
 
 from .config import *
 from .container import spin_container
@@ -8,10 +11,14 @@ from .models import QueueItem
 
 log = logging.getLogger(__name__)
 
+
 @dataclass
 class BenchmarkResult:
     status: str = ""
     output: str = ""
+
+printables = ''.join(filter(lambda x: x not in string.whitespace, string.printable))
+
 
 def benchmark_submission(item: QueueItem) -> BenchmarkResult:
 
@@ -55,11 +62,25 @@ def _compile_submission(item: QueueItem) -> BenchmarkResult:
         return BenchmarkResult(status="error", output="Error: compilation timed out")
 
 
+def _make_random_sig(length):
+    return random.choices(printables, k=length)
+
+
 def _execute_benchmark(item: QueueItem) -> BenchmarkResult:
+    
+    SIGNATURE_LENGTH = os.getenv("SIGNATURE_LENGTH", 16)
+    ITERATIONS = os.getenv("ITERATIONS", 1)
+
     try:
         # TODO this command is a placeholder, we'll clean it up later
-        result = spin_container(parameters=["-c", f"cd /{SPELLER} && ./speller 5 texts/holmes.txt && echo 'Benchmark:' && ./benchmark 5 texts/holmes.txt"])
+        signature = _make_random_sig(SIGNATURE_LENGTH)
+        result = spin_container(parameters=["-c",
+            f"cd /{SPELLER} && "
+            f"./speller -i 1 texts/holmes.txt && echo 'Benchmark:' && ./benchmark 5 texts/holmes.txt"])
         output = result.stdout + result.stderr
+
+    
+        # TODO return different statuses
         status = "done"
 
         log.debug("Submission %s finished benchmark, exit code: %s", item.submission_id, result.returncode)
