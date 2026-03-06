@@ -65,15 +65,14 @@ def _execute_benchmark(item: QueueItem) -> BenchmarkResult:
     try:
         # TODO this command is a placeholder, we'll clean it up later
         signature = item.submission_id
-
         sh_cmds = [f"cd /{SPELLER} && "]
-        
+
         textpaths = list(map(lambda filepath: filepath.name, Path('./speller/texts').iterdir()))
         log.debug(textpaths)
 
         result = spin_container(parameters=["-c",
             f"cd /{SPELLER} && "
-            f"./speller -i 1 texts/holmes.txt && echo 'Benchmark:' && ./benchmark 5 texts/holmes.txt"])
+            f"./speller -i 5 texts/holmes.txt && echo 'Benchmark:' && ./benchmark -i 5 texts/holmes.txt"])
         output = result.stdout + result.stderr
 
     
